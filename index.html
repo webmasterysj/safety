@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>안전탐정 - 현장 안전 지킴이 앱</title>
+
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+    :root {
+      --primary: #0b5edd;
+      --secondary: #1a1a2e;
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --light: #6b7280;
+      --border: #e5e7eb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+    body { background: var(--bg); color: var(--text); line-height: 1.6; }
+
+    .container { max-width: 600px; margin: 0 auto; min-height: 100vh; background: var(--card); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .hidden { display: none !important; }
+
+    /* 헤더 */
+    .header {
+      padding: 18px 20px; background: var(--primary); color: white;
+      border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+      position: sticky; top: 0; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 4px 10px rgba(11,94,221,0.3);
+    }
+    .header h1 { font-size: 1.3rem; font-weight: 700; }
+    .nav-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 50px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: background 0.2s; }
+    .nav-btn:hover { background: rgba(255,255,255,0.35); }
+
+    /* 컨텐츠 영역 */
+    .content { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+    /* 섹션 타이틀 */
+    .section-title { font-size: 1.1rem; font-weight: 700; color: var(--secondary); display: flex; align-items: center; gap: 6px; }
+
+    /* 폼 */
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group label { font-weight: 600; font-size: 0.9rem; color: var(--secondary); }
+    select, textarea { width: 100%; padding: 13px; border: 2px solid var(--border); border-radius: 12px; font-size: 1rem; background: #fafbfc; outline: none; appearance: none; transition: border-color 0.2s; }
+    select:focus, textarea:focus { border-color: var(--primary); background: #fff; }
+
+    /* 라디오 버튼 */
+    .radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .radio-btn { flex: 1; min-width: 75px; }
+    .radio-btn input { display: none; }
+    .radio-btn label { display: block; padding: 10px 6px; text-align: center; background: var(--bg); border: 2px solid var(--border); border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.15s; }
+    .radio-btn input:checked + label { background: rgba(11,94,221,0.07); border-color: var(--primary); color: var(--primary); }
+
+    /* 버튼 */
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-weight: 700; font-size: 1.05rem; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(11,94,221,0.3); }
+    .btn-primary:hover { opacity: 0.92; }
+
+    /* 사진 업로드 */
+    .photo-upload { border: 2px dashed var(--border); border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer; background: #fafbfc; overflow: hidden; transition: border-color 0.2s; }
+    .photo-upload:hover { border-color: var(--primary); }
+    .photo-preview { width: 100%; height: 240px; object-fit: cover; display: block; }
+    .upload-icon { font-size: 2.2rem; margin-bottom: 10px; }
+
+    /* 메인 선택 버튼 카드 */
+    .mode-card {
+      height: 120px; border-radius: 18px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; gap: 8px; font-size: 1.2rem; font-weight: 700;
+      border: 2px solid var(--border); background: white; color: var(--secondary);
+      box-shadow: var(--shadow); cursor: pointer; width: 100%; transition: all 0.2s;
+    }
+    .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .mode-card span { font-size: 0.82rem; font-weight: 400; color: var(--light); }
+
+    /* ================================================================
+       팀 랭킹 카드 (학생 화면 + 교사 대시보드 공통)
+    ================================================================ */
+    .ranking-list { display: flex; flex-direction: column; gap: 10px; }
+    .rank-card {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 16px; transition: all 0.2s;
+    }
+    .rank-card.rank-1 { background: linear-gradient(135deg, #fffbeb, #fef3c7); border-color: #fbbf24; }
+    .rank-card.rank-2 { background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-color: #94a3b8; }
+    .rank-card.rank-3 { background: linear-gradient(135deg, #fff7f0, #fed7aa); border-color: #fb923c; }
+
+    .rank-badge {
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; flex-shrink: 0;
+    }
+    .rank-1 .rank-badge { background: #fbbf24; color: white; }
+    .rank-2 .rank-badge { background: #94a3b8; color: white; }
+    .rank-3 .rank-badge { background: #fb923c; color: white; }
+    .rank-card:not(.rank-1):not(.rank-2):not(.rank-3) .rank-badge { background: var(--border); color: var(--light); }
+
+    .rank-info { flex: 1; }
+    .rank-name { font-weight: 700; font-size: 1rem; }
+    .rank-detail { font-size: 0.78rem; color: var(--light); margin-top: 2px; }
+
+    .rank-score { text-align: right; }
+    .rank-score-num { font-size: 1.5rem; font-weight: 800; color: var(--primary); line-height: 1; }
+    .rank-score-label { font-size: 0.7rem; color: var(--light); }
+
+    /* 점수 진행바 */
+    .score-bar-wrap { margin-top: 6px; }
+    .score-bar-bg { background: rgba(0,0,0,0.07); border-radius: 10px; height: 6px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 10px; background: var(--primary); transition: width 0.6s ease; }
+    .rank-1 .score-bar-fill { background: #fbbf24; }
+    .rank-2 .score-bar-fill { background: #94a3b8; }
+    .rank-3 .score-bar-fill { background: #fb923c; }
+
+    /* ================================================================
+       교사 대시보드 통계
+    ================================================================ */
+    .stats-grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stat-card {
+      background: var(--bg); padding: 16px; border-radius: 14px;
+      text-align: center; border: 1px solid var(--border);
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 2px; }
+    .stat-label { font-size: 0.8rem; color: var(--light); font-weight: 600; }
+
+    /* 위험 분야별 현황 막대 */
+    .hazard-list { display: flex; flex-direction: column; gap: 10px; }
+    .hazard-row { display: flex; flex-direction: column; gap: 4px; }
+    .hazard-header { display: flex; justify-content: space-between; align-items: center; }
+    .hazard-name { font-weight: 600; font-size: 0.9rem; }
+    .hazard-count { font-weight: 700; font-size: 0.85rem; color: var(--primary); }
+    .hazard-bar-bg { background: var(--border); border-radius: 10px; height: 10px; overflow: hidden; }
+    .hazard-bar-fill { height: 100%; border-radius: 10px; background: var(--primary); transition: width 0.6s ease; }
+
+    /* 피드 */
+    .feed-filter { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .feed-filter::-webkit-scrollbar { display: none; }
+    .filter-btn { padding: 7px 14px; border-radius: 50px; background: var(--bg); border: 1px solid var(--border); white-space: nowrap; font-weight: 600; font-size: 0.85rem; color: var(--light); cursor: pointer; transition: all 0.15s; }
+    .filter-btn.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+
+    .feed-list { display: flex; flex-direction: column; gap: 16px; }
+    .feed-card { background: white; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .feed-img { width: 100%; height: 190px; object-fit: cover; background: #eee; }
+    .feed-content { padding: 14px; }
+    .feed-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .badge { padding: 3px 9px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+    .badge-team { background: #e0f2fe; color: #0284c7; }
+    .badge-hazard { background: #fef9c3; color: #854d0e; }
+    .badge-good { background: #dcfce7; color: #166534; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+    .feed-desc { font-size: 0.92rem; margin-bottom: 6px; }
+    .feed-time { font-size: 0.75rem; color: var(--light); }
+
+    /* 구분선 */
+    .divider { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+
+    /* 로딩 */
+    #loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; }
+    .spinner { width: 38px; height: 38px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 성공 배너 (제출 완료 알림) */
+    #success-banner {
+      position: sticky; bottom: 20px; margin: 0 20px;
+      background: #10b981; color: white;
+      padding: 14px 18px; border-radius: 14px;
+      font-weight: 700; font-size: 0.95rem;
+      text-align: center; z-index: 100;
+      box-shadow: 0 4px 14px rgba(16,185,129,0.4);
+      animation: slideUpBanner 0.3s ease;
+    }
+    @keyframes slideUpBanner {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 비밀번호 모달 */
+    #pw-modal {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(26,26,46,0.7); backdrop-filter: blur(6px);
+      z-index: 2000; display: flex; justify-content: center; align-items: center;
+    }
+    .pw-box {
+      background: white; border-radius: 24px; padding: 36px 28px;
+      width: 90%; max-width: 360px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      animation: popIn 0.25s ease;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .pw-icon { font-size: 2.8rem; margin-bottom: 10px; }
+    .pw-title { font-size: 1.2rem; font-weight: 800; color: var(--secondary); margin-bottom: 6px; }
+    .pw-sub { font-size: 0.85rem; color: var(--light); margin-bottom: 20px; }
+    .pw-input {
+      width: 100%; padding: 14px; text-align: center; font-size: 1.4rem;
+      letter-spacing: 8px; border: 2px solid var(--border); border-radius: 12px;
+      outline: none; font-weight: 700; margin-bottom: 10px;
+    }
+    .pw-input:focus { border-color: var(--primary); }
+    .pw-error { color: var(--danger); font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; min-height: 20px; }
+    .pw-btn-group { display: flex; gap: 10px; }
+    .pw-confirm { flex: 2; padding: 13px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 1rem; cursor: pointer; }
+    .pw-cancel  { flex: 1; padding: 13px; background: var(--bg); color: var(--light); border: 1px solid var(--border); border-radius: 12px; font-weight: 600; font-size: 1rem; cursor: pointer; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== 1. 시작 화면 (모드 선택) ===== -->
+  <main id="view-select" class="content" style="justify-content: center; gap: 36px; min-height: 100vh;">
+    <div style="text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 10px;">🔍</div>
+      <h2 style="font-size: 2rem; font-weight: 800; color: var(--primary); margin-bottom: 6px;">안전탐정</h2>
+      <p style="color: var(--light);">현장 위험 요소를 찾고 팀과 경쟁하세요!</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <button class="mode-card" onclick="switchTab('view-student')">
+        🧑‍🎓 학생 모드
+        <span>현장 탐정 활동 및 팀 랭킹 확인</span>
+      </button>
+      <button class="mode-card" onclick="switchTab('view-teacher')">
+        👨‍🏫 교사 대시보드
+        <span>실시간 통계, 팀 현황, 상세 분석</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- ===== 2. 학생 화면 ===== -->
+  <section id="view-student" class="hidden">
+    <header class="header">
+      <h1>🧑‍🎓 탐정 기록하기</h1>
+      <button class="nav-btn" onclick="switchTab('view-select')">← 홈</button>
+    </header>
+    <main class="content">
+
+      <!-- 팀 선택 -->
+      <div class="form-group">
+        <label for="team-select">우리 팀을 선택하세요</label>
+        <select id="team-select">
+          <option value="" disabled selected>팀 선택...</option>
+          <option value="1">1팀 (번개팀)</option>
+          <option value="2">2팀 (불꽃팀)</option>
+          <option value="3">3팀 (감독팀)</option>
+          <option value="4">4팀 (영웅팀)</option>
+        </select>
+      </div>
+
+      <!-- 현장 사진 -->
+      <div class="form-group">
+        <label>현장 사진 촬영</label>
+        <div class="photo-upload" id="photo-box" onclick="document.getElementById('file-input').click()">
+          <div id="photo-placeholder">
+            <div class="upload-icon">📷</div>
+            <p style="font-weight: 600; color: var(--secondary);">터치하여 사진 찍기</p>
+            <p style="font-size: 0.8rem; color: var(--light); margin-top: 4px;">파일 선택도 가능합니다</p>
+          </div>
+          <img id="photo-preview" class="photo-preview hidden" alt="촬영 사진">
+        </div>
+        <input type="file" id="file-input" class="hidden" accept="image/*" capture="environment">
+      </div>
+
+      <!-- 안전 상태 -->
+      <div class="form-group">
+        <label>안전 조치 상태</label>
+        <div class="radio-group">
+          <div class="radio-btn"><input type="radio" name="status_type" id="status_good" value="good"><label for="status_good">🟢 조치 양호<br><span style="font-size:0.7rem;opacity:0.7;">+1점</span></label></div>
+          <div class="radio-btn"><input type="radio" name="status_type" id="status_danger" value="danger"><label for="status_danger">🔴 위험 발견<br><span style="font-size:0.7rem;opacity:0.7;">+2점</span></label></div>
+        </div>
+      </div>
+
+      <!-- 위험 분야 -->
+      <div class="form-group">
+        <label>관련 위험 분야</label>
+        <div class="radio-group">
+          <div class="radio-btn"><input type="radio" name="hazard_type" id="h1" value="감전"><label for="h1">⚡ 감전</label></div>
+          <div class="radio-btn"><input type="radio" name="hazard_type" id="h2" value="추락"><label for="h2">🧗 추락</label></div>
+          <div class="radio-btn"><input type="radio" name="hazard_type" id="h3" value="화재"><label for="h3">🔥 화재</label></div>
+          <div class="radio-btn"><input type="radio" name="hazard_type" id="h4" value="붕괴"><label for="h4">🧱 붕괴</label></div>
+          <div class="radio-btn"><input type="radio" name="hazard_type" id="h5" value="기타"><label for="h5">❓ 기타</label></div>
+        </div>
+      </div>
+
+      <!-- 상세 설명 -->
+      <div class="form-group">
+        <label for="desc-input">상세 설명</label>
+        <textarea id="desc-input" rows="3" placeholder="어떤 점이 잘 되어 있거나 부족한지 적어보세요."></textarea>
+      </div>
+
+      <button id="btn-submit" class="btn btn-primary">🚀 보고서 전송하기</button>
+
+      <!-- 성공 배너 (제출 완료 시 표시) -->
+      <div id="success-banner" class="hidden">
+        <span id="success-msg"></span>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 실시간 팀 랭킹 (학생 화면) -->
+      <div>
+        <div class="section-title" style="margin-bottom: 12px;">🏆 현재 팀 순위</div>
+        <div id="student-ranking" class="ranking-list">
+          <p style="text-align:center; color: var(--light); padding: 20px 0; font-size: 0.9rem;">순위를 불러오는 중...</p>
+        </div>
+      </div>
+
+    </main>
+  </section>
+
+  <!-- ===== 3. 교사 대시보드 ===== -->
+  <section id="view-teacher" class="hidden">
+    <header class="header">
+      <h1>👨‍🏫 실시간 대시보드</h1>
+      <button class="nav-btn" onclick="switchTab('view-select')">← 홈</button>
+    </header>
+    <main class="content">
+
+      <!-- 전체 요약 통계 -->
+      <div>
+        <div class="section-title" style="margin-bottom: 12px;">📊 전체 현황</div>
+        <div class="stats-grid-4">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">총 업로드</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-danger" style="color: var(--danger);">0</div>
+            <div class="stat-label">위험 발견</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-good" style="color: var(--success);">0</div>
+            <div class="stat-label">조치 양호</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-top-team" style="font-size: 1.1rem;">-</div>
+            <div class="stat-label">1위 팀</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 팀별 점수 랭킹 -->
+      <div>
+        <div class="section-title" style="margin-bottom: 12px;">🏆 팀별 점수 순위</div>
+        <div id="teacher-ranking" class="ranking-list">
+          <p style="text-align:center; color: var(--light); padding: 20px 0; font-size: 0.9rem;">순위를 불러오는 중...</p>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 위험 분야별 현황 -->
+      <div>
+        <div class="section-title" style="margin-bottom: 12px;">⚠️ 위험 분야별 현황</div>
+        <div id="hazard-stats" class="hazard-list">
+          <p style="text-align:center; color: var(--light); padding: 20px 0; font-size: 0.9rem;">불러오는 중...</p>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 피드 (팀 필터 포함) -->
+      <div>
+        <div class="section-title" style="margin-bottom: 12px;">📋 제출 목록</div>
+        <div class="feed-filter">
+          <button class="filter-btn active" onclick="setFilter('all', this)">전체</button>
+          <button class="filter-btn" onclick="setFilter('1', this)">1팀 번개</button>
+          <button class="filter-btn" onclick="setFilter('2', this)">2팀 불꽃</button>
+          <button class="filter-btn" onclick="setFilter('3', this)">3팀 감독</button>
+          <button class="filter-btn" onclick="setFilter('4', this)">4팀 영웅</button>
+        </div>
+        <div id="feed-container" class="feed-list" style="margin-top: 12px;"></div>
+      </div>
+
+    </main>
+  </section>
+
+  <!-- 로딩 -->
+  <div id="loading" class="hidden">
+    <div class="spinner"></div>
+    <b style="color: var(--secondary);" id="loading-text">처리 중...</b>
+  </div>
+  <!-- 비밀번호 모달 -->
+  <div id="pw-modal" class="hidden">
+    <div class="pw-box">
+      <div class="pw-icon">🔐</div>
+      <div class="pw-title">교사 모드 접속</div>
+      <div class="pw-sub">비밀번호를 입력해 주세요</div>
+      <input type="password" id="pw-input" class="pw-input" maxlength="10" placeholder="●●●●" inputmode="numeric">
+      <div class="pw-error" id="pw-error"></div>
+      <div class="pw-btn-group">
+        <button class="pw-cancel" onclick="closePwModal()">취소</button>
+        <button class="pw-confirm" onclick="confirmPassword()">확인</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ============================================================
+  // 팀 이름 맵 (코드 한 곳에서 관리)
+  // ============================================================
+  const TEAM_NAMES = { '1': '번개팀', '2': '불꽃팀', '3': '감독팀', '4': '영웅팀' };
+  const HAZARD_LIST = [
+    { key: '감전', icon: '⚡' },
+    { key: '추락', icon: '🧗' },
+    { key: '화재', icon: '🔥' },
+    { key: '붕괴', icon: '🧱' },
+    { key: '기타', icon: '❓' }
+  ];
+
+  // ============================================================
+  // 화면 전환 (인라인 onclick 에서 호출)
+  // ============================================================
+  function switchTab(viewId) {
+    // 교사 모드는 비밀번호 확인 후 진입
+    if (viewId === 'view-teacher') {
+      openPwModal();
+      return;
+    }
+    doSwitchTab(viewId);
+  }
+
+  // 실제 화면 전환 (비밀번호 인증 후 실행)
+  function doSwitchTab(viewId) {
+    ['view-select', 'view-student', 'view-teacher'].forEach(id => {
+      document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(viewId).classList.remove('hidden');
+    if (viewId === 'view-teacher' && window.refreshAll) window.refreshAll();
+    if (viewId === 'view-student' && window.loadRanking) window.loadRanking('student-ranking');
+  }
+
+  // 비밀번호 모달 열기/닫기
+  function openPwModal() {
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-error').innerText = '';
+    document.getElementById('pw-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('pw-input').focus(), 100);
+  }
+  function closePwModal() {
+    document.getElementById('pw-modal').classList.add('hidden');
+  }
+
+  // 비밀번호 확인
+  function confirmPassword() {
+    const inputVal = document.getElementById('pw-input').value;
+    if (inputVal === '7263') {        // 정해진 비밀번호
+      closePwModal();
+      doSwitchTab('view-teacher');
+    } else {
+      document.getElementById('pw-error').innerText = '⚠️ 비밀번호가 다릅니다. 다시 시도해 주세요.';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  }
+
+  function setFilter(team, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    window.currentFilter = team;
+    if (window.loadFeed) window.loadFeed();
+  }
+
+  // ============================================================
+  // 메인 로직 (DOMContentLoaded 이후 실행)
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', function () {
+
+    const SUPABASE_URL = 'https://wnayexlkyvfpbeohvind.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYXlleGxreXZmcGJlb2h2aW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NjQ0NzQsImV4cCI6MjA5MDQ0MDQ3NH0.4ysWMpaWg5GBrksYTJwznvQS7P15J8__pHZd_CervLg';
+    let supabase = null;
+    let currentFile = null;
+    window.currentFilter = 'all';
+
+    try {
+      if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch (e) { console.error('수파베이스 초기화 오류:', e); }
+
+    // 비밀번호 입력창: 엔터키 → 확인 실행
+    document.getElementById('pw-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') confirmPassword();
+    });
+    // 비밀번호 모달 배경 클릭 시 닫기
+    document.getElementById('pw-modal').addEventListener('click', function(e) {
+      if (e.target === this) closePwModal();
+    });
+
+    // ----- 사진 선택 미리보기 -----
+    const fileInput = document.getElementById('file-input');
+    const photoPreview = document.getElementById('photo-preview');
+    const placeholder = document.getElementById('photo-placeholder');
+
+    fileInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      currentFile = file;
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        photoPreview.src = evt.target.result;
+        photoPreview.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ----- 보고서 제출 -----
+    document.getElementById('btn-submit').addEventListener('click', async function () {
+      if (!supabase) return alert('수파베이스 연결이 실패했습니다. 새로고침 후 다시 시도해 주세요.');
+      const teamId = document.getElementById('team-select').value;
+      const statusEl = document.querySelector('input[name="status_type"]:checked');
+      const hazardEl = document.querySelector('input[name="hazard_type"]:checked');
+      const desc = document.getElementById('desc-input').value.trim();
+
+      if (!teamId) return alert('팀을 선택해 주세요.');
+      if (!currentFile) return alert('사진을 촬영하거나 선택해 주세요.');
+      if (!statusEl) return alert('안전 조치 상태를 선택해 주세요.');
+      if (!hazardEl) return alert('위험 분야를 선택해 주세요.');
+      if (!desc) return alert('상세 설명을 입력해 주세요.');
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('loading-text').innerText = '사진 업로드 중...';
+
+      try {
+        // 사진 → 스토리지에 저장
+        const fileName = Date.now() + '_' + currentFile.name;
+        const { error: uploadErr } = await supabase.storage.from('safety_photos').upload(fileName, currentFile);
+        if (uploadErr) throw new Error('사진 업로드 실패: ' + uploadErr.message);
+
+        const { data: { publicUrl } } = supabase.storage.from('safety_photos').getPublicUrl(fileName);
+
+        document.getElementById('loading-text').innerText = '보고서 저장 중...';
+
+        // 데이터베이스에 저장 (점수 계산: danger=2, good=1)
+        const score = statusEl.value === 'danger' ? 2 : 1;
+        const { error: dbErr } = await supabase.from('safety_reports').insert([{
+          team_id: teamId,
+          status_type: statusEl.value,
+          hazard_type: hazardEl.value,
+          description: desc,
+          image_url: publicUrl,
+          score: score
+        }]);
+        if (dbErr) throw new Error('저장 오류: ' + dbErr.message);
+
+        // 성공 후 초기화 (팀 선택은 유지 → 연속 보고서 작성 가능)
+        document.getElementById('desc-input').value = '';
+        document.querySelectorAll('input[name="status_type"], input[name="hazard_type"]').forEach(r => r.checked = false);
+        currentFile = null;
+        photoPreview.src = '';
+        photoPreview.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+
+        // 화면 내 성공 배너 표시 (alert 대신 비침투적 방식)
+        const banner = document.getElementById('success-banner');
+        const bannerMsg = document.getElementById('success-msg');
+        bannerMsg.innerText = '✅ 보고서 전송 완료! ' + (score === 2 ? '+2점 🎉 위험 발견!' : '+1점 ✔ 양호 확인!');
+        banner.classList.remove('hidden');
+        setTimeout(() => banner.classList.add('hidden'), 3000); // 3초 후 자동 숨김
+
+        // 학생 랭킹 즉시 갱신
+        window.loadRanking('student-ranking');
+
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+      }
+    });
+
+    // ----- 점수 계산 및 랭킹 생성 -----
+    function buildRankingHTML(data, containerId) {
+      // 팀별 점수 및 업로드 수 집계
+      const teamStats = {};
+      ['1', '2', '3', '4'].forEach(id => {
+        teamStats[id] = { total: 0, score: 0, danger: 0, good: 0 };
+      });
+
+      data.forEach(item => {
+        const t = item.team_id;
+        if (!teamStats[t]) return;
+        teamStats[t].total += 1;
+        teamStats[t].score += (item.score || (item.status_type === 'danger' ? 2 : 1));
+        if (item.status_type === 'danger') teamStats[t].danger += 1;
+        else teamStats[t].good += 1;
+      });
+
+      // 점수 내림차순 정렬
+      const sorted = Object.entries(teamStats).sort((a, b) => b[1].score - a[1].score);
+      const maxScore = sorted[0][1].score || 1; // 비율 계산용 (최소 1)
+
+      let html = '';
+      sorted.forEach(([teamId, stats], i) => {
+        const rank = i + 1;
+        const rankClass = rank <= 3 ? 'rank-' + rank : '';
+        const medal = ['🥇', '🥈', '🥉'][i] || rank;
+        const barPct = Math.round((stats.score / maxScore) * 100);
+
+        html += `
+          <div class="rank-card ${rankClass}">
+            <div class="rank-badge">${medal}</div>
+            <div class="rank-info">
+              <div class="rank-name">${teamId}팀 ${TEAM_NAMES[teamId] || ''}</div>
+              <div class="rank-detail">업로드 ${stats.total}개 · 위험 ${stats.danger}건 · 양호 ${stats.good}건</div>
+              <div class="score-bar-wrap">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:${barPct}%"></div></div>
+              </div>
+            </div>
+            <div class="rank-score">
+              <div class="rank-score-num">${stats.score}</div>
+              <div class="rank-score-label">점</div>
+            </div>
+          </div>`;
+      });
+
+      document.getElementById(containerId).innerHTML = html || '<p style="text-align:center;color:#999;padding:20px;">아직 데이터가 없습니다.</p>';
+      return { sorted, teamStats };
+    }
+
+    // ----- 위험 분야별 현황 -----
+    function buildHazardStats(data) {
+      const counts = {};
+      HAZARD_LIST.forEach(h => counts[h.key] = 0);
+      data.forEach(item => {
+        if (counts[item.hazard_type] !== undefined) counts[item.hazard_type]++;
+        else counts['기타'] = (counts['기타'] || 0) + 1;
+      });
+
+      const maxCount = Math.max(...Object.values(counts), 1);
+      let html = '';
+      HAZARD_LIST.forEach(h => {
+        const cnt = counts[h.key] || 0;
+        const pct = Math.round((cnt / maxCount) * 100);
+        html += `
+          <div class="hazard-row">
+            <div class="hazard-header">
+              <span class="hazard-name">${h.icon} ${h.key}</span>
+              <span class="hazard-count">${cnt}건</span>
+            </div>
+            <div class="hazard-bar-bg"><div class="hazard-bar-fill" style="width:${pct}%"></div></div>
+          </div>`;
+      });
+      document.getElementById('hazard-stats').innerHTML = html;
+    }
+
+    // ----- 피드 목록 -----
+    window.loadFeed = async function () {
+      if (!supabase) return;
+      const container = document.getElementById('feed-container');
+      container.innerHTML = '<p style="text-align:center;color:#999;padding:16px;font-size:0.9rem">불러오는 중...</p>';
+      try {
+        let query = supabase.from('safety_reports').select('*').order('created_at', { ascending: false });
+        if (window.currentFilter !== 'all') query = query.eq('team_id', window.currentFilter);
+        const { data, error } = await query;
+        if (error) throw error;
+
+        if (!data.length) {
+          container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">제출된 보고서가 없습니다.</p>';
+          return;
+        }
+
+        container.innerHTML = data.map(item => {
+          const timeStr = new Date(item.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+          const scoreStr = item.score || (item.status_type === 'danger' ? 2 : 1);
+          return `
+            <div class="feed-card">
+              <img src="${item.image_url}" class="feed-img" onerror="this.style.display='none'">
+              <div class="feed-content">
+                <div class="feed-badges">
+                  <span class="badge badge-team">${item.team_id}팀 ${TEAM_NAMES[item.team_id] || ''}</span>
+                  <span class="badge ${item.status_type === 'danger' ? 'badge-danger' : 'badge-good'}">${item.status_type === 'danger' ? '🔴 위험' : '🟢 양호'} +${scoreStr}점</span>
+                  <span class="badge badge-hazard">${item.hazard_type}</span>
+                </div>
+                <p class="feed-desc">${item.description}</p>
+                <div class="feed-time">${timeStr}</div>
+              </div>
+            </div>`;
+        }).join('');
+
+      } catch (e) {
+        console.error(e);
+        container.innerHTML = '<p style="color:#ef4444;text-align:center;padding:20px;">데이터를 불러오지 못했습니다.</p>';
+      }
+    };
+
+    // ----- 학생/교사 공통 랭킹 로더 -----
+    window.loadRanking = async function (containerId) {
+      if (!supabase) return;
+      try {
+        const { data, error } = await supabase.from('safety_reports').select('*');
+        if (error) throw error;
+        return buildRankingHTML(data, containerId);
+      } catch (e) { console.error(e); }
+    };
+
+    // ----- 교사 전체 통계 -----
+    async function loadTeacherStats() {
+      if (!supabase) return;
+      try {
+        const { data, error } = await supabase.from('safety_reports').select('*');
+        if (error) throw error;
+
+        // 요약 통계
+        let totalDanger = 0, totalGood = 0;
+        data.forEach(item => {
+          if (item.status_type === 'danger') totalDanger++;
+          else totalGood++;
+        });
+        document.getElementById('stat-total').innerText = data.length;
+        document.getElementById('stat-danger').innerText = totalDanger;
+        document.getElementById('stat-good').innerText = totalGood;
+
+        // 팀 랭킹
+        const result = buildRankingHTML(data, 'teacher-ranking');
+        if (result && result.sorted.length) {
+          const topTeamId = result.sorted[0][0];
+          document.getElementById('stat-top-team').innerText = topTeamId + '팀 ' + (TEAM_NAMES[topTeamId] || '');
+        }
+
+        // 위험 분야 통계
+        buildHazardStats(data);
+
+      } catch (e) { console.error(e); }
+    }
+
+    // ----- 교사 전체 갱신 -----
+    window.refreshAll = function () {
+      loadTeacherStats();
+      window.loadFeed();
+    };
+
+    // ----- 실시간 구독 -----
+    if (supabase) {
+      supabase.channel('realtime-safety')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'safety_reports' }, () => {
+          // 현재 보이는 화면에 따라 갱신
+          if (!document.getElementById('view-teacher').classList.contains('hidden')) {
+            window.refreshAll();
+          }
+          if (!document.getElementById('view-student').classList.contains('hidden')) {
+            window.loadRanking('student-ranking');
+          }
+        })
+        .subscribe();
+    }
+
+  }); // DOMContentLoaded end
+</script>
+</body>
+</html>
