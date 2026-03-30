@@ -4,45 +4,147 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>안전탐정 - 현장 안전 지킴이 앱</title>
-  <meta name="description" content="학생들이 직접 현장 안전 조치 사항을 촬영하고 공유하는 안전탐정 웹서비스">
-  <link rel="stylesheet" href="style.css">
-  <!-- Supabase JS Client Load -->
+  
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+    :root {
+      --primary-color: #0b5edd;
+      --secondary-color: #1a1a2e;
+      --bg-color: #f4f6fb;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-light: #6b7280;
+      --border-color: #e5e7eb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --radius: 16px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; }
+
+    .container {
+      max-width: 600px; margin: 0 auto; min-height: 100vh;
+      background-color: var(--card-bg); box-shadow: var(--shadow);
+      display: flex; flex-direction: column;
+    }
+
+    .hidden { display: none !important; }
+
+    .header {
+      padding: 24px 20px; background: var(--primary-color); color: white; text-align: center;
+      border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+      position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center;
+    }
+    .header h1 { font-size: 1.4rem; font-weight: 700; }
+    .nav-btn { background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 6px 14px; border-radius: 50px; cursor: pointer; font-weight: 600; }
+    
+    .content { padding: 24px; flex: 1; display: flex; flex-direction: column; gap: 24px; }
+    .title-group h2 { font-size: 1.6rem; font-weight: 800; color: var(--secondary-color); margin-bottom: 8px; }
+    .title-group p { color: var(--text-light); font-size: 0.95rem; }
+
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group label { font-weight: 600; font-size: 0.95rem; color: var(--secondary-color); }
+    
+    select, textarea {
+      width: 100%; padding: 14px; border: 2px solid var(--border-color); border-radius: 12px;
+      font-size: 1rem; background-color: #fafbfc; outline: none; appearance: none;
+    }
+    select:focus, textarea:focus { border-color: var(--primary-color); background-color: #fff; }
+
+    .radio-group { display: flex; flex-wrap: wrap; gap: 10px; }
+    .radio-btn { flex: 1; min-width: 80px; }
+    .radio-btn input { display: none; }
+    .radio-btn label {
+      display: block; padding: 12px; text-align: center; background: var(--bg-color);
+      border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; font-weight: 600;
+    }
+    .radio-btn input:checked + label { background: rgba(11, 94, 221, 0.05); border-color: var(--primary-color); color: var(--primary-color); }
+
+    .btn {
+      width: 100%; padding: 16px; border: none; border-radius: 16px; font-weight: 700;
+      font-size: 1.1rem; cursor: pointer; background-color: var(--primary-color); color: white;
+    }
+
+    .photo-upload {
+      border: 2px dashed var(--border-color); border-radius: 16px; padding: 40px 20px;
+      text-align: center; cursor: pointer; background: #fafbfc; overflow: hidden;
+    }
+    .photo-preview { width: 100%; height: 250px; object-fit: contain; display: block; background: #000; }
+    .upload-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    .btn-card {
+      height: 140px; border-radius: 20px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; gap: 12px; font-size: 1.3rem;
+      border: 2px solid var(--border-color); background: white; color: var(--secondary-color);
+      box-shadow: var(--shadow); cursor: pointer;
+    }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .stat-card { background: var(--bg-color); padding: 16px; border-radius: 16px; text-align: center; border: 1px solid var(--border-color); }
+    .stat-value { font-size: 2rem; font-weight: 800; color: var(--primary-color); margin-bottom: 4px; }
+    .stat-label { font-size: 0.85rem; color: var(--text-light); font-weight: 600; }
+
+    .feed-filter { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
+    .filter-btn {
+      padding: 8px 16px; border-radius: 50px; background: var(--bg-color); border: 1px solid var(--border-color);
+      white-space: nowrap; font-weight: 600; color: var(--text-light); cursor: pointer;
+    }
+    .filter-btn.active { background: var(--secondary-color); color: white; border-color: var(--secondary-color); }
+
+    .feed-list { display: flex; flex-direction: column; gap: 20px; }
+    .feed-card { background: white; border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; }
+    .feed-img { width: 100%; height: 200px; background-color: #eaeaea; object-fit: cover; }
+    .feed-content { padding: 16px; }
+    .feed-badge-group { display: flex; gap: 8px; margin-bottom: 8px; }
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+    .badge-team { background: #e0f2fe; color: #0284c7; }
+    .badge-hazard { background: #fef08a; color: #854d0e; }
+    .badge-good { background: #dcfce7; color: #166534; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+
+    #loading {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.8); z-index: 1000;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;
+    }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+
+  <!-- 수파베이스 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
 
-    <!-- ============================================== 
-         1. 시작 화면 (학생 / 교사 선택) 
-         ============================================== -->
-    <main id="view-select" class="content" style="justify-content: center; gap: 40px !important;">
+    <!-- 1. 메인 모드 선택 -->
+    <main id="view-select" class="content" style="justify-content: center; gap: 40px;">
       <div class="title-group" style="text-align: center;">
         <h2 style="font-size: 2.2rem; color: var(--primary-color);">🔍 안전탐정</h2>
         <p>현장의 위험 요소를 찾고 공유해 보세요.</p>
       </div>
       <div style="display: flex; flex-direction: column; gap: 20px;">
-        <button id="btn-mode-student" class="btn-card student">
+        <button id="btn-mode-student" class="btn-card student" onclick="switchTab('view-student')">
            🧑‍🎓 학생 모드
           <span style="font-size:0.85rem; font-weight: 500;">현장을 관찰하고 사진을 전송합니다</span>
         </button>
-        <button id="btn-mode-teacher" class="btn-card teacher">
+        <button id="btn-mode-teacher" class="btn-card teacher" onclick="switchTab('view-teacher')">
            👨‍🏫 교사 (대시보드) 모드
           <span style="font-size:0.85rem; font-weight: 500;">실시간 통계와 업로드 상황을 모니터링합니다</span>
         </button>
       </div>
     </main>
 
-    <!-- ============================================== 
-         2. 학생 화면 (사진 업로드 및 보고서 작성)
-         ============================================== -->
+    <!-- 2. 학생 화면 -->
     <section id="view-student" class="hidden">
       <header class="header">
         <h1>🧑‍🎓 탐정 기록하기</h1>
-        <button class="nav-btn btn-home">목록으로</button>
+        <button class="nav-btn" onclick="switchTab('view-select')">목록으로</button>
       </header>
-
       <main class="content">
-        <!-- 2.1 팀 선택 -->
         <div class="form-group">
           <label for="team-select">우리 팀을 선택하세요</label>
           <select id="team-select">
@@ -54,33 +156,23 @@
           </select>
         </div>
 
-        <!-- 2.2 현장 사진 촬영 -->
         <div class="form-group">
           <label>현장 사진 촬영</label>
           <div class="photo-upload" id="photo-box" onclick="document.getElementById('file-input').click()">
             <div id="photo-placeholder">
               <div class="upload-icon">📷</div>
               <p style="font-weight: 600; color: var(--secondary-color);">터치하여 사진 찍기</p>
-              <p style="font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">파일 업로드도 가능합니다.</p>
             </div>
-            <img id="photo-preview" class="photo-preview hidden" alt="촬영된 사진">
+            <img id="photo-preview" class="photo-preview hidden" alt="촬영 사진">
           </div>
-          <!-- 파일 업로드 실제 인풋 창은 숨김 -->
           <input type="file" id="file-input" class="hidden" accept="image/*" capture="environment">
         </div>
 
-        <!-- 2.3 안전 상태 및 위험 유형 카테고리 -->
         <div class="form-group">
           <label>안전 조치 상태</label>
           <div class="radio-group" id="status-group">
-            <div class="radio-btn">
-              <input type="radio" name="status_type" id="status_good" value="good">
-              <label for="status_good">🟢 조치 양호</label>
-            </div>
-            <div class="radio-btn">
-              <input type="radio" name="status_type" id="status_danger" value="danger">
-              <label for="status_danger">🔴 조치 미흡</label>
-            </div>
+            <div class="radio-btn"><input type="radio" name="status_type" id="status_good" value="good"><label for="status_good">🟢 조치 양호</label></div>
+            <div class="radio-btn"><input type="radio" name="status_type" id="status_danger" value="danger"><label for="status_danger">🔴 조치 미흡</label></div>
           </div>
         </div>
 
@@ -95,82 +187,186 @@
           </div>
         </div>
 
-        <!-- 2.4 상세 내용 입력 -->
         <div class="form-group">
           <label for="desc-input">상세 설명</label>
-          <textarea id="desc-input" rows="3" placeholder="어떤 점이 잘 되어 있거나 부족한지 간단히 적어보세요."></textarea>
+          <textarea id="desc-input" rows="3" placeholder="어떤 점이 잘 되어 있거나 부족한지 적어보세요."></textarea>
         </div>
 
-        <button id="btn-submit" class="btn btn-primary" style="margin-top: 10px;">
-          🚀 상태 보고서 전송
-        </button>
+        <button id="btn-submit" class="btn">🚀 상태 보고서 전송</button>
       </main>
     </section>
 
-    <!-- ============================================== 
-         3. 교사 화면 (통계 모니터링 대시보드 및 피드)
-         ============================================== -->
+    <!-- 3. 교사 대시보드 화면 -->
     <section id="view-teacher" class="hidden">
       <header class="header">
         <h1>👨‍🏫 실시간 대시보드</h1>
-        <button class="nav-btn btn-home">목록으로</button>
+        <button class="nav-btn" onclick="switchTab('view-select')">목록으로</button>
       </header>
-
       <main class="content">
-        <!-- 3.1 통계 카드 구역 -->
-        <div class="title-group">
-          <h2>📊 전체 통계</h2>
-          <p>학생들의 전체 보고 현황입니다.</p>
-        </div>
-        
         <div class="stats-grid">
           <div class="stat-card">
-             <div class="stat-value" id="stat-total">0</div>
-             <div class="stat-label">누적 업로드 (개)</div>
+             <div class="stat-value" id="stat-total">0</div><div class="stat-label">누적 업로드</div>
           </div>
           <div class="stat-card">
-             <div class="stat-value" id="stat-danger" style="color: var(--danger);">0</div>
-             <div class="stat-label">조치 미흡 감지</div>
+             <div class="stat-value" id="stat-danger" style="color: var(--danger);">0</div><div class="stat-label">조치 미흡</div>
           </div>
         </div>
-
         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
-
-        <!-- 3.2 실시간 피드 구역 -->
-         <div class="title-group" style="display:flex; justify-content: space-between; align-items: center;">
-          <h2 style="margin: 0;">📡 탐정 보고 피드</h2>
-          <span style="font-size: 0.8rem; color: var(--text-light);"><span style="color:var(--success);">●</span> 실시간 연동 중</span>
-        </div>
-
-        <!-- 필터 영역 -->
         <div class="feed-filter">
-           <button class="filter-btn active" data-filter="all">전체보기</button>
-           <button class="filter-btn" data-filter="1">1팀</button>
-           <button class="filter-btn" data-filter="2">2팀</button>
-           <button class="filter-btn" data-filter="3">3팀</button>
-           <button class="filter-btn" data-filter="4">4팀</button>
+           <button class="filter-btn active" onclick="setFilter('all', this)">전체보기</button>
+           <button class="filter-btn" onclick="setFilter('1', this)">1팀</button>
+           <button class="filter-btn" onclick="setFilter('2', this)">2팀</button>
+           <button class="filter-btn" onclick="setFilter('3', this)">3팀</button>
+           <button class="filter-btn" onclick="setFilter('4', this)">4팀</button>
         </div>
-
-        <!-- 아이템 리스트 영역 (자바스크립트로 그립니다) -->
-        <div id="feed-container" class="feed-list">
-          <div style="text-align:center; padding: 40px 0; color: var(--text-light);">
-            데이터를 불러오는 중입니다...
-          </div>
-        </div>
+        <div id="feed-container" class="feed-list"></div>
       </main>
     </section>
 
-    <!-- ============================================== 
-         로딩 화면 오버레이 
-         ============================================== -->
+    <!-- 로딩바 -->
     <div id="loading" class="hidden">
-      <div class="spinner"></div>
-      <b style="color: var(--secondary-color);" id="loading-text">안전망 연결 중...</b>
+      <div class="spinner"></div><b id="loading-text" style="color:var(--secondary-color)">작업 중...</b>
     </div>
 
-  </div> <!-- End Container -->
+  </div> <!-- Container -->
 
-  <!-- 핵심 JS 로직 (수파베이스 연동 및 뷰 라우팅) -->
-  <script src="app.js"></script>
+  <!-- 최후의 필살기: 모든 자바스크립트를 HTML 내부에서 안전하게 실행 -->
+  <script>
+    // ----------------------------------------------------
+    // 간단한 화면 전환 (인라인 이벤트 연결용)
+    // ----------------------------------------------------
+    function switchTab(viewId) {
+      document.getElementById('view-select').classList.add('hidden');
+      document.getElementById('view-student').classList.add('hidden');
+      document.getElementById('view-teacher').classList.add('hidden');
+      document.getElementById(viewId).classList.remove('hidden');
+      
+      if (viewId === 'view-teacher' && typeof loadFeed === 'function') {
+        loadFeed();
+      }
+    }
+
+    // 초기화용 이벤트 리스너 안전 등록 구역
+    document.addEventListener("DOMContentLoaded", function() {
+      
+      const SUPABASE_URL = 'https://wnayexlkyvfpbeohvind.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYXlleGxreXZmcGJlb2h2aW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NjQ0NzQsImV4cCI6MjA5MDQ0MDQ3NH0.4ysWMpaWg5GBrksYTJwznvQS7P15J8__pHZd_CervLg';
+      
+      let supabase = null;
+      let currentFile = null;
+      window.currentFilter = 'all'; 
+
+      try {
+        if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      } catch(e) {
+        console.error("수파베이스 라이브러리 오류:", e);
+      }
+
+      const fileInput = document.getElementById('file-input');
+      const photoBox = document.getElementById('photo-box');
+      const photoPreview = document.getElementById('photo-preview');
+      const placeholder = document.getElementById('photo-placeholder');
+
+      // 1. 사진 선택
+      fileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        currentFile = file;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          photoPreview.src = evt.target.result;
+          photoPreview.classList.remove('hidden');
+          placeholder.classList.add('hidden');
+        }
+        reader.readAsDataURL(file);
+      });
+
+      // 2. 데이터 제출
+      document.getElementById('btn-submit').addEventListener('click', async function() {
+        if (!supabase) return alert("수파베이스 연결 정보가 올바르지 않거나 로딩에 실패했습니다!");
+        
+        const teamId = document.getElementById('team-select').value;
+        const statusEl = document.querySelector('input[name="status_type"]:checked');
+        const hazardEl = document.querySelector('input[name="hazard_type"]:checked');
+        const desc = document.getElementById('desc-input').value;
+
+        if (!teamId || !currentFile || !statusEl || !hazardEl || !desc) {
+          return alert('모든 정보(사진, 설명 등)를 입력해주세요.');
+        }
+
+        document.getElementById('loading').classList.remove('hidden');
+
+        try {
+          const fileName = Date.now() + "_" + currentFile.name;
+          const { error: uploadError } = await supabase.storage.from('safety_photos').upload(fileName, currentFile);
+          if (uploadError) throw new Error('사진 업로드 실패: ' + uploadError.message);
+          
+          const { data: { publicUrl } } = supabase.storage.from('safety_photos').getPublicUrl(fileName);
+          
+          const { error: dbError } = await supabase.from('safety_reports').insert([{
+            team_id: teamId, status_type: statusEl.value, hazard_type: hazardEl.value, description: desc, image_url: publicUrl
+          }]);
+          if (dbError) throw new Error('DB 저장 오류: ' + dbError.message);
+          
+          alert('보고서가 완료되었습니다!');
+          switchTab('view-select');
+          
+        } catch(err) {
+          alert(err.message);
+        } finally {
+          document.getElementById('loading').classList.add('hidden');
+        }
+      });
+
+      // 3. 피드 및 리얼타임
+      window.loadFeed = async function() {
+        if(!supabase) return;
+        const container = document.getElementById('feed-container');
+        try {
+          let query = supabase.from('safety_reports').select('*').order('created_at', { ascending: false });
+          if (window.currentFilter !== 'all') query = query.eq('team_id', window.currentFilter);
+          
+          const { data, error } = await query;
+          if (error) throw error;
+          
+          let dangerCount = 0;
+          let html = '';
+          data.forEach(item => {
+            if (item.status_type === 'danger') dangerCount++;
+            html += `<div class="feed-card">
+              <img src="${item.image_url}" class="feed-img">
+              <div class="feed-content">
+                <span class="badge ${item.status_type==='danger'?'badge-danger':'badge-good'}">${item.status_type==='danger'?'🔴 미흡':'🟢 양호'}</span>
+                <span class="badge badge-team">${item.team_id}팀</span>
+                <span class="badge badge-hazard">${item.hazard_type}</span>
+                <p style="margin-top:8px">${item.description}</p>
+              </div>
+            </div>`;
+          });
+          
+          document.getElementById('stat-total').innerText = data.length;
+          document.getElementById('stat-danger').innerText = dangerCount;
+          container.innerHTML = html.length ? html : '<p style="text-align:center;color:#666;padding:20px;">데이터가 없습니다.</p>';
+          
+        } catch(e) {
+          console.error(e);
+        }
+      }
+
+      window.setFilter = function(team, btnElement) {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+        window.currentFilter = team;
+        window.loadFeed();
+      }
+      
+      // 실시간 옵션 
+      if(supabase) {
+         supabase.channel('public:safety_reports').on('postgres_changes', { event:'INSERT', schema:'public', table:'safety_reports' }, ()=> {
+            window.loadFeed();
+         }).subscribe();
+      }
+    });
+  </script>
 </body>
 </html>
