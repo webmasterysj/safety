@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>안전탐정 - 현장 안전 지킴이 앱</title>
+  <meta name="description" content="학생들이 직접 현장 안전 조치 사항을 촬영하고 공유하는 안전탐정 웹서비스">
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Client Load -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ============================================== 
+         1. 시작 화면 (학생 / 교사 선택) 
+         ============================================== -->
+    <main id="view-select" class="content" style="justify-content: center; gap: 40px !important;">
+      <div class="title-group" style="text-align: center;">
+        <h2 style="font-size: 2.2rem; color: var(--primary-color);">🔍 안전탐정</h2>
+        <p>현장의 위험 요소를 찾고 공유해 보세요.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <button id="btn-mode-student" class="btn-card student">
+           🧑‍🎓 학생 모드
+          <span style="font-size:0.85rem; font-weight: 500;">현장을 관찰하고 사진을 전송합니다</span>
+        </button>
+        <button id="btn-mode-teacher" class="btn-card teacher">
+           👨‍🏫 교사 (대시보드) 모드
+          <span style="font-size:0.85rem; font-weight: 500;">실시간 통계와 업로드 상황을 모니터링합니다</span>
+        </button>
+      </div>
+    </main>
+
+    <!-- ============================================== 
+         2. 학생 화면 (사진 업로드 및 보고서 작성)
+         ============================================== -->
+    <section id="view-student" class="hidden">
+      <header class="header">
+        <h1>🧑‍🎓 탐정 기록하기</h1>
+        <button class="nav-btn btn-home">목록으로</button>
+      </header>
+
+      <main class="content">
+        <!-- 2.1 팀 선택 -->
+        <div class="form-group">
+          <label for="team-select">우리 팀을 선택하세요</label>
+          <select id="team-select">
+            <option value="" disabled selected>팀 선택...</option>
+            <option value="1">1팀 (레드불스)</option>
+            <option value="2">2팀 (블루버드)</option>
+            <option value="3">3팀 (그린타이거)</option>
+            <option value="4">4팀 (옐로우샤크)</option>
+          </select>
+        </div>
+
+        <!-- 2.2 현장 사진 촬영 -->
+        <div class="form-group">
+          <label>현장 사진 촬영</label>
+          <div class="photo-upload" id="photo-box" onclick="document.getElementById('file-input').click()">
+            <div id="photo-placeholder">
+              <div class="upload-icon">📷</div>
+              <p style="font-weight: 600; color: var(--secondary-color);">터치하여 사진 찍기</p>
+              <p style="font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">파일 업로드도 가능합니다.</p>
+            </div>
+            <img id="photo-preview" class="photo-preview hidden" alt="촬영된 사진">
+          </div>
+          <!-- 파일 업로드 실제 인풋 창은 숨김 -->
+          <input type="file" id="file-input" class="hidden" accept="image/*" capture="environment">
+        </div>
+
+        <!-- 2.3 안전 상태 및 위험 유형 카테고리 -->
+        <div class="form-group">
+          <label>안전 조치 상태</label>
+          <div class="radio-group" id="status-group">
+            <div class="radio-btn">
+              <input type="radio" name="status_type" id="status_good" value="good">
+              <label for="status_good">🟢 조치 양호</label>
+            </div>
+            <div class="radio-btn">
+              <input type="radio" name="status_type" id="status_danger" value="danger">
+              <label for="status_danger">🔴 조치 미흡</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>관련 위험 분야</label>
+          <div class="radio-group" id="hazard-group">
+            <div class="radio-btn"><input type="radio" name="hazard_type" id="hazard_1" value="감전"><label for="hazard_1">⚡ 감전</label></div>
+            <div class="radio-btn"><input type="radio" name="hazard_type" id="hazard_2" value="추락"><label for="hazard_2">🧗 추락</label></div>
+            <div class="radio-btn"><input type="radio" name="hazard_type" id="hazard_3" value="화재"><label for="hazard_3">🔥 화재</label></div>
+            <div class="radio-btn"><input type="radio" name="hazard_type" id="hazard_4" value="붕괴"><label for="hazard_4">🧱 붕괴</label></div>
+            <div class="radio-btn"><input type="radio" name="hazard_type" id="hazard_5" value="기타"><label for="hazard_5">❓ 기타</label></div>
+          </div>
+        </div>
+
+        <!-- 2.4 상세 내용 입력 -->
+        <div class="form-group">
+          <label for="desc-input">상세 설명</label>
+          <textarea id="desc-input" rows="3" placeholder="어떤 점이 잘 되어 있거나 부족한지 간단히 적어보세요."></textarea>
+        </div>
+
+        <button id="btn-submit" class="btn btn-primary" style="margin-top: 10px;">
+          🚀 상태 보고서 전송
+        </button>
+      </main>
+    </section>
+
+    <!-- ============================================== 
+         3. 교사 화면 (통계 모니터링 대시보드 및 피드)
+         ============================================== -->
+    <section id="view-teacher" class="hidden">
+      <header class="header">
+        <h1>👨‍🏫 실시간 대시보드</h1>
+        <button class="nav-btn btn-home">목록으로</button>
+      </header>
+
+      <main class="content">
+        <!-- 3.1 통계 카드 구역 -->
+        <div class="title-group">
+          <h2>📊 전체 통계</h2>
+          <p>학생들의 전체 보고 현황입니다.</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+             <div class="stat-value" id="stat-total">0</div>
+             <div class="stat-label">누적 업로드 (개)</div>
+          </div>
+          <div class="stat-card">
+             <div class="stat-value" id="stat-danger" style="color: var(--danger);">0</div>
+             <div class="stat-label">조치 미흡 감지</div>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
+
+        <!-- 3.2 실시간 피드 구역 -->
+         <div class="title-group" style="display:flex; justify-content: space-between; align-items: center;">
+          <h2 style="margin: 0;">📡 탐정 보고 피드</h2>
+          <span style="font-size: 0.8rem; color: var(--text-light);"><span style="color:var(--success);">●</span> 실시간 연동 중</span>
+        </div>
+
+        <!-- 필터 영역 -->
+        <div class="feed-filter">
+           <button class="filter-btn active" data-filter="all">전체보기</button>
+           <button class="filter-btn" data-filter="1">1팀</button>
+           <button class="filter-btn" data-filter="2">2팀</button>
+           <button class="filter-btn" data-filter="3">3팀</button>
+           <button class="filter-btn" data-filter="4">4팀</button>
+        </div>
+
+        <!-- 아이템 리스트 영역 (자바스크립트로 그립니다) -->
+        <div id="feed-container" class="feed-list">
+          <div style="text-align:center; padding: 40px 0; color: var(--text-light);">
+            데이터를 불러오는 중입니다...
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <!-- ============================================== 
+         로딩 화면 오버레이 
+         ============================================== -->
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <b style="color: var(--secondary-color);" id="loading-text">안전망 연결 중...</b>
+    </div>
+
+  </div> <!-- End Container -->
+
+  <!-- 핵심 JS 로직 (수파베이스 연동 및 뷰 라우팅) -->
+  <script src="app.js"></script>
+</body>
+</html>
