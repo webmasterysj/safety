@@ -4,12 +4,19 @@
 const SUPABASE_URL = 'https://wnayexlkyvfpbeohvind.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYXlleGxreXZmcGJlb2h2aW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NjQ0NzQsImV4cCI6MjA5MDQ0MDQ3NH0.4ysWMpaWg5GBrksYTJwznvQS7P15J8__pHZd_CervLg';
 
-// 수파베이스 클라이언트 초기화 (초보자를 위한 CDN 로드 방식)
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 // 전역 변수 설정
+let supabase = null;
 let currentFile = null;
 let currentFilter = 'all'; // 교사 대시보드 팀 필터
+
+// CDN 로딩 지연 등으로 에러가 발생하더라도 화면(UI) 버튼 동작은 정상 작동되게 try-catch로 감쌉니다.
+try {
+  // 수파베이스 클라이언트 초기화
+  if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  else console.warn("Supabase 라이브러리를 정상적으로 불러오지 못했습니다.");
+} catch(e) {
+  console.error("수파베이스 초기화 중 에러:", e);
+}
 
 // ==========================================
 // 2. 화면 전환 함수
