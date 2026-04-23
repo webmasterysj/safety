@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개 vs 고양이 인식기</title>
+    <style>
+        :root {
+            color-scheme: light;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .wrapper {
+            width: 100%;
+            max-width: 1200px;
+        }
+        h1 {
+            margin: 0 0 20px;
+            font-size: clamp(1.8rem, 2.5vw, 2.8rem);
+            text-align: center;
+        }
+        #main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        #countdown-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #ff6b6b;
+            margin: 10px 0;
+            display: none;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: background-color 0.2s ease;
+            min-width: 180px;
+        }
+        button:hover { background-color: #45a049; }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #capture-btn {
+            background-color: #2196F3;
+        }
+        #capture-btn:hover {
+            background-color: #1976D2;
+        }
+        #content-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+        }
+        #preview-panel,
+        #info-panel {
+            background: white;
+            border-radius: 18px;
+            border: 1px solid #e0e4eb;
+            padding: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        #preview-panel {
+            display: flex;
+            justify-content: center;
+        }
+        #webcam-container {
+            width: 100%;
+            max-width: 280px;
+            aspect-ratio: 1 / 1;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid #d7dae2;
+            background: #000;
+        }
+        #webcam-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+            display: block;
+        }
+        #label-container {
+            font-size: clamp(1.4rem, 2.2vw, 2rem);
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+        #status-message {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #545f7c;
+        }
+        @media (min-width: 900px) {
+            #main-container {
+                align-items: stretch;
+            }
+            #content-panel {
+                flex-direction: row;
+                gap: 24px;
+            }
+            #preview-panel,
+            #info-panel {
+                flex: 1;
+            }
+            #controls { align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <h1>🐶 개 vs 고양이 인식기 🐱</h1>
+        <div id="main-container">
+            <div id="controls">
+                <button type="button" id="start-btn" onclick="startCountdown()">카운트다운 시작 (3초)</button>
+                <button type="button" id="capture-btn" onclick="captureAndPredict()" disabled style="display: none;">사진 캡처 및 예측</button>
+                <div id="countdown-display"></div>
+                <div id="status-message">카메라를 켜고 카운트다운을 시작하세요.</div>
+            </div>
+            <div id="content-panel">
+                <div id="preview-panel">
+                    <div id="webcam-container"></div>
+                </div>
+                <div id="info-panel">
+                    <div id="label-container">카메라를 켜고 카운트다운을 시작하세요.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script>
+        const URL = "https://teachablemachine.withgoogle.com/models/hbOeNd5pK/";
+
+        let model = null;
+        let webcam = null;
+        let labelContainer = null;
+        let statusMessage = null;
+        let countdownDisplay = null;
+        let startBtn = null;
+        let captureBtn = null;
+        let maxPredictions = 0;
+        let countdownTimer = null;
+        let isInitializing = false;
+        let isCountingDown = false;
+
+        async function init() {
+            if (isInitializing) return;
+
+            isInitializing = true;
+            labelContainer = document.getElementById("label-container");
+            statusMessage = document.getElementById("status-message");
+            countdownDisplay = document.getElementById("countdown-display");
+            startBtn = document.getElementById("start-btn");
+            captureBtn = document.getElementById("capture-btn");
+
+            updateStatus("모델을 불러오는 중입니다...");
+            labelContainer.innerText = "잠시만 기다려 주세요.";
+
+            try {
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                const flip = true;
+                webcam = new tmImage.Webcam(320, 320, flip);
+                await webcam.setup();
+                await webcam.play();
+
+                webcam.canvas.style.width = "100%";
+                webcam.canvas.style.height = "100%";
+                webcam.canvas.style.objectFit = "cover";
+                const webcamContainer = document.getElementById("webcam-container");
+                webcamContainer.innerHTML = "";
+                webcamContainer.appendChild(webcam.canvas);
+
+                updateStatus("카메라가 준비되었습니다. 카운트다운을 시작하세요.");
+                startBtn.disabled = false;
+                startCameraLoop();
+
+            } catch (error) {
+                console.error(error);
+                updateStatus("카메라를 켜는 중 오류가 발생했습니다. 권한 또는 장치를 확인하세요.");
+                labelContainer.innerText = "카메라를 사용할 수 없습니다.";
+                webcam = null;
+                model = null;
+            } finally {
+                isInitializing = false;
+            }
+        }
+
+        function startCameraLoop() {
+            if (!webcam) return;
+            window.requestAnimationFrame(renderFrame);
+        }
+
+        function renderFrame() {
+            if (!webcam) return;
+            webcam.update();
+            window.requestAnimationFrame(renderFrame);
+        }
+
+        function startCountdown() {
+            if (isCountingDown || !webcam) return;
+
+            isCountingDown = true;
+            startBtn.disabled = true;
+            captureBtn.style.display = "none";
+            countdownDisplay.style.display = "block";
+
+            let count = 3;
+            countdownDisplay.innerText = count;
+
+            countdownTimer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownDisplay.innerText = count;
+                } else {
+                    clearInterval(countdownTimer);
+                    countdownDisplay.innerText = "찰칵!";
+                    setTimeout(() => {
+                        captureAndPredict();
+                    }, 500);
+                }
+            }, 1000);
+        }
+
+        async function captureAndPredict() {
+            if (!model || !webcam) return;
+
+            isCountingDown = false;
+            countdownDisplay.style.display = "none";
+            updateStatus("사진을 분석하는 중입니다...");
+
+            try {
+                const prediction = await model.predict(webcam.canvas);
+                let highestProb = 0;
+                let bestClass = "알 수 없음";
+
+                for (let i = 0; i < maxPredictions; i++) {
+                    if (prediction[i].probability > highestProb) {
+                        highestProb = prediction[i].probability;
+                        bestClass = prediction[i].className;
+                    }
+                }
+
+                const resultText = `${bestClass} (${(highestProb * 100).toFixed(1)}%)`;
+                labelContainer.innerText = resultText;
+
+                // 예측 완료 후 음성 출력
+                setTimeout(() => {
+                    speakResult(bestClass);
+                    updateStatus("분석이 완료되었습니다. 다시 예측하려면 버튼을 클릭하세요.");
+                    captureBtn.style.display = "inline-block";
+                    captureBtn.disabled = false;
+                    startBtn.disabled = false;
+                    startBtn.innerText = "다시 예측하기";
+                    startBtn.onclick = startCountdown;
+                }, 1000);
+
+            } catch (error) {
+                console.error("예측 오류:", error);
+                updateStatus("예측 중 오류가 발생했습니다.");
+                startBtn.disabled = false;
+            }
+        }
+
+        function updateStatus(text) {
+            if (statusMessage) {
+                statusMessage.innerText = text;
+            }
+        }
+
+        function speakResult(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const speech = new SpeechSynthesisUtterance(`${text} 입니다.`);
+                speech.lang = 'ko-KR';
+                speech.rate = 1.1;
+                window.speechSynthesis.speak(speech);
+            }
+        }
+
+        // 페이지 로드 시 자동 초기화
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
